@@ -1,0 +1,697 @@
+2026-09-23
+
+# 나
+게임 클라이언트 및 서버 구조를 이해하기 위해 교과서 목차를 짜주시고 예제 프로그램 목표도 짜주세요
+
+# 응답
+좋습니다. **“게임 클라이언트와 서버가 어떻게 통신하고, 게임 상태가 어디에서 결정되는가?”**를 중심 질문으로 잡으면 교과서 형태로 배우기 좋습니다.
+
+아래는 특정 엔진이나 언어에 종속되지 않도록 구성한 **입문 → 네트워크 → 서버 권위 구조 → 동시성/동기화 → 실전 구조**의 교과서 목차와 단계별 예제 프로그램 목표입니다.
+
+# 게임 클라이언트·서버 구조 교과서
+
+## Part 1. 게임 클라이언트와 서버의 기본 개념
+
+### 1장. 게임 프로그램은 어떻게 동작하는가
+
+* 게임 루프(Game Loop)
+* 입력 → 처리 → 상태 변경 → 렌더링
+* 프레임과 시간의 개념
+* 클라이언트 프로그램의 역할
+* 서버 프로그램의 역할
+* 싱글플레이와 멀티플레이의 차이
+
+**예제 1 — 미니 게임 루프**
+
+* 키보드 입력
+* 플레이어 위치 변경
+* 화면에 플레이어 출력
+* `Update()`와 `Render()`의 역할 분리
+
+**목표:**
+
+> 게임 프로그램의 기본 실행 흐름을 이해한다.
+
+---
+
+### 2장. 클라이언트와 서버는 왜 분리하는가
+
+* 클라이언트의 책임
+* 서버의 책임
+* 서버가 필요한 이유
+* 게임 상태(Game State)
+* 권위(Authority)의 개념
+* 클라이언트가 모든 것을 결정하면 생기는 문제
+
+**예제 2 — 싱글플레이 게임을 클라이언트/서버 구조로 나누기**
+
+```text
+[Client]
+입력
+ ↓
+Request
+ ↓
+[Server]
+게임 상태 변경
+ ↓
+Response
+ ↓
+[Client]
+화면 출력
+```
+
+**목표:**
+
+> "게임 화면을 보여주는 것"과 "게임의 실제 상태를 결정하는 것"을 분리한다.
+
+---
+
+# Part 2. 네트워크 프로그래밍 기초
+
+## 3장. 네트워크의 기본 원리
+
+* IP 주소
+* Port
+* TCP / UDP
+* Socket
+* Client / Server
+* 연결(Connection)
+* 패킷(Packet)
+* 송신과 수신
+
+**예제 3 — TCP Echo Server**
+
+```text
+Client
+  │
+  │ "Hello"
+  ▼
+Server
+  │
+  │ "Hello"
+  ▼
+Client
+```
+
+**목표:**
+
+> 두 프로그램이 네트워크를 통해 데이터를 주고받는 과정을 이해한다.
+
+---
+
+## 4장. 게임에서 TCP와 UDP 사용하기
+
+* TCP의 특징
+* UDP의 특징
+* 신뢰성
+* 순서 보장
+* 지연시간
+* 패킷 손실
+* 게임에서 TCP/UDP를 선택하는 기준
+
+**예제 4 — TCP 채팅 프로그램**
+
+```text
+Client A ─┐
+          ├── Chat Server ── Client B
+Client C ─┘
+```
+
+**목표:**
+
+> 여러 클라이언트가 하나의 서버에 접속하는 구조를 이해한다.
+
+---
+
+## 5장. 여러 클라이언트를 처리하는 서버
+
+* Blocking I/O
+* Non-blocking I/O
+* Thread
+* Event Loop
+* Connection 관리
+* Client ID
+* Session
+
+**예제 5 — 멀티 클라이언트 채팅 서버**
+
+```text
+             ┌─ Client 1
+             │
+Client 2 ─── Server ─── Client 3
+             │
+             └─ Client 4
+```
+
+**목표:**
+
+> 서버 하나가 여러 플레이어의 연결을 관리하는 방법을 이해한다.
+
+---
+
+# Part 3. 게임 네트워크 구조
+
+## 6장. 게임 서버의 구조
+
+게임 서버를 단순히 "패킷을 받는 프로그램"으로 생각하지 않도록 하는 장입니다.
+
+```text
+                 Game Server
+                      │
+       ┌──────────────┼──────────────┐
+       │              │              │
+   Network          Game           Database
+   Layer            Logic          Layer
+       │              │              │
+   Packet          Player         Account
+   Session          Monster        Item
+   Connection       Combat         Save
+```
+
+* Network Layer
+* Session Layer
+* Game Logic
+* Game World
+* Database
+* 로그 시스템
+* 서버의 책임 분리
+
+**예제 6 — 간단한 게임 서버**
+
+서버가 다음 상태를 관리합니다.
+
+```text
+Player
+ ├─ ID
+ ├─ Position
+ ├─ HP
+ ├─ Level
+ └─ State
+```
+
+**목표:**
+
+> 서버 내부를 기능별로 분리하는 이유를 이해한다.
+
+---
+
+## 7장. 패킷과 프로토콜 설계
+
+* Packet이란 무엇인가
+* Header / Body
+* Message ID
+* Packet Size
+* Serialization
+* Deserialization
+* Version
+* Protocol 설계
+
+예:
+
+```text
+[Packet]
+┌────────┬──────────┬─────────────┐
+│ Size   │ Message  │ Payload     │
+│ 4byte  │ 2byte    │ N bytes     │
+└────────┴──────────┴─────────────┘
+```
+
+**예제 7 — 로그인 패킷**
+
+```text
+C_LOGIN
+ ├─ AccountID
+ └─ Password
+
+S_LOGIN_RESULT
+ ├─ Result
+ └─ PlayerID
+```
+
+**목표:**
+
+> 클라이언트와 서버가 같은 프로토콜을 사용해야 하는 이유를 이해한다.
+
+---
+
+# Part 4. 실제 게임의 핵심
+
+## 8장. 플레이어 이동 동기화
+
+가장 중요한 실습 중 하나입니다.
+
+```text
+Client
+  │
+  │ Move Request
+  ▼
+Server
+  │
+  │ Position Update
+  ▼
+Client A
+Client B
+Client C
+```
+
+* 입력값 전송
+* 위치 계산
+* 서버 상태
+* 클라이언트 상태
+* Position Synchronization
+* Tick
+* Server Update
+
+**예제 8 — 2인용 움직이는 플레이어**
+
+목표 기능:
+
+* 두 명이 서버에 접속
+* 각자 캐릭터 생성
+* 방향키로 이동
+* 서버가 위치를 관리
+* 다른 플레이어의 위치를 화면에 표시
+
+**목표:**
+
+> "내 캐릭터를 움직이는 것"과 "다른 사람에게 내 움직임을 보여주는 것"이 별개의 문제임을 이해한다.
+
+---
+
+## 9장. 서버 권위(Server Authority)
+
+게임 서버 구조를 이해하는 데 핵심적인 장입니다.
+
+예를 들어 클라이언트가
+
+```text
+"내 HP는 999999입니다."
+```
+
+라고 보내는 구조는 피해야 합니다.
+
+대신:
+
+```text
+Client
+  ↓
+Attack Request
+  ↓
+Server
+  ├─ 공격 가능한가?
+  ├─ 사거리가 맞는가?
+  ├─ 공격 쿨타임인가?
+  ├─ 대상이 존재하는가?
+  └─ 데미지 계산
+  ↓
+Game State 변경
+  ↓
+Clients
+```
+
+* Server Authority
+* Client Authority
+* 검증(Validation)
+* 치팅 방지의 기본 원리
+* 서버에서 계산해야 하는 것
+* 클라이언트에서 계산해도 되는 것
+
+**예제 9 — 서버 권위 이동/공격**
+
+**목표:**
+
+> 클라이언트는 "의도"를 보내고 서버가 "결과"를 결정하는 구조를 이해한다.
+
+---
+
+# Part 5. 실시간 게임 서버
+
+## 10장. 게임 Tick과 게임 시간
+
+* Tick
+* Fixed Update
+* Delta Time
+* Server Time
+* Frame Rate와 Tick Rate
+* 30 TPS / 60 TPS
+* 게임 로직과 렌더링 주기의 분리
+
+**예제 10 — 20 TPS 게임 서버**
+
+```text
+Server Tick
+
+0     1     2     3     4
+│     │     │     │     │
+Update Game State
+│     │     │     │     │
+└─────┴─────┴─────┴─────
+```
+
+**목표:**
+
+> 서버가 일정한 시간 간격으로 게임 세계를 처리하는 이유를 이해한다.
+
+---
+
+## 11장. 동기화와 보간
+
+* Snapshot
+* Interpolation
+* Extrapolation
+* Client Prediction
+* Server Correction
+* Jitter
+* Latency
+
+**예제 11 — 네트워크 지연이 있는 플레이어**
+
+일부러
+
+```text
+50ms
+100ms
+200ms
+```
+
+의 지연을 발생시켜 캐릭터가 어떻게 보이는지 관찰합니다.
+
+**목표:**
+
+> 네트워크 게임에서 "서버의 위치"와 "화면에서 보이는 위치"가 항상 같지 않을 수 있음을 이해한다.
+
+---
+
+# Part 6. 게임 월드와 객체 관리
+
+## 12장. 게임 오브젝트와 Entity
+
+* Entity
+* Component
+* Player
+* Monster
+* NPC
+* Item
+* Entity ID
+* 생성/삭제
+* Object Lifecycle
+
+**예제 12 — Entity 관리 서버**
+
+```text
+World
+ ├─ Player 1001
+ ├─ Player 1002
+ ├─ Monster 2001
+ ├─ Monster 2002
+ └─ Item 3001
+```
+
+**목표:**
+
+> 서버가 수많은 게임 객체를 어떻게 관리하는지 이해한다.
+
+---
+
+## 13장. 게임 월드와 Zone
+
+* World
+* Map
+* Room
+* Zone
+* Spatial Partition
+* AOI(Area of Interest)
+
+**예제 13 — 2개의 Zone을 가진 게임**
+
+```text
+┌───────────────┬───────────────┐
+│     Zone A    │    Zone B     │
+│               │               │
+│ Player 1      │ Player 3      │
+│ Player 2      │ Monster       │
+└───────────────┴───────────────┘
+```
+
+**목표:**
+
+> 모든 플레이어에게 모든 정보를 보내지 않아도 되는 이유를 이해한다.
+
+---
+
+# Part 7. 데이터와 서버 운영
+
+## 14장. 게임 서버와 데이터베이스
+
+* DB의 역할
+* Account
+* Character
+* Inventory
+* Item
+* Save / Load
+* Transaction
+* Cache
+
+**예제 14 — 회원/캐릭터 저장**
+
+```text
+Game Server
+     │
+     ├── Account
+     ├── Character
+     └── Inventory
+             │
+             ▼
+          Database
+```
+
+**목표:**
+
+> 실시간 게임 상태와 영구적으로 저장해야 하는 데이터를 구분한다.
+
+---
+
+## 15장. 로그인부터 게임 입장까지
+
+실제 게임의 접속 과정을 구현합니다.
+
+```text
+Login Server
+     ↓
+Authentication
+     ↓
+Game Server 선택
+     ↓
+Game Server 접속
+     ↓
+Character 선택
+     ↓
+Game World 입장
+```
+
+**예제 15 — 미니 온라인 게임 로그인 시스템**
+
+**목표:**
+
+> 실제 온라인 게임의 접속 흐름을 처음부터 끝까지 이해한다.
+
+---
+
+# Part 8. 실전 아키텍처
+
+## 16장. 서버 내부 구조 설계
+
+예:
+
+```text
+                ┌──────────────┐
+                │   Network    │
+                └──────┬───────┘
+                       │
+                ┌──────▼───────┐
+                │   Session    │
+                └──────┬───────┘
+                       │
+                ┌──────▼───────┐
+                │ Packet/Msg    │
+                └──────┬───────┘
+                       │
+                ┌──────▼───────┐
+                │ Game Logic    │
+                └──────┬───────┘
+                       │
+             ┌─────────┴─────────┐
+             ▼                   ▼
+        Game World           Database
+```
+
+* Layered Architecture
+* Dependency
+* Module
+* Interface
+* 책임 분리
+* 테스트 가능한 서버
+
+**예제 16 — 실제 게임 서버와 유사한 프로젝트 구조 만들기**
+
+---
+
+## 17장. 서버의 동시성
+
+* Thread
+* Mutex
+* Lock
+* Race Condition
+* Deadlock
+* Thread Pool
+* Concurrent Queue
+* Actor Model의 개념
+
+**예제 17 — 여러 플레이어가 동시에 아이템 획득**
+
+```text
+Player A ─┐
+Player B ─┼──→ Item
+Player C ─┘
+```
+
+**목표:**
+
+> 여러 요청이 동시에 들어왔을 때 게임 상태가 망가지는 이유와 해결 방법을 이해한다.
+
+---
+
+# Part 9. 최종 프로젝트
+
+## 18장. 미니 온라인 게임 만들기
+
+교과서의 모든 내용을 하나의 게임으로 통합합니다.
+
+### 게임 장르
+
+**2D 멀티플레이 RPG / 액션 게임**
+
+### 최종 기능
+
+```text
+                 ┌───────────────┐
+                 │ Login Server  │
+                 └───────┬───────┘
+                         │
+                         ▼
+                 ┌───────────────┐
+                 │ Game Server   │
+                 └───────┬───────┘
+                         │
+          ┌──────────────┼──────────────┐
+          ▼              ▼              ▼
+       Client A       Client B       Client C
+```
+
+### 구현 기능
+
+1. 로그인
+2. 캐릭터 생성
+3. 게임 입장
+4. 플레이어 이동
+5. 다른 플레이어 표시
+6. 몬스터 생성
+7. 공격
+8. 데미지 계산
+9. HP 동기화
+10. 아이템 드롭
+11. 아이템 획득
+12. 인벤토리
+13. 캐릭터 저장
+14. 재접속
+15. 서버 로그
+
+---
+
+# 예제 프로그램 전체 로드맵
+
+교과서의 각 장을 단순히 이론으로 끝내지 않고 다음과 같이 **작은 프로그램을 계속 발전시키는 방식**을 추천합니다.
+
+| 단계 | 예제            | 배우는 핵심          |
+| -- | ------------- | --------------- |
+| 1  | 미니 게임 루프      | Client 기본       |
+| 2  | TCP Echo      | Network 기본      |
+| 3  | Chat Server   | 다중 접속           |
+| 4  | Packet Server | Protocol        |
+| 5  | Game Server   | Game State      |
+| 6  | 2인 이동 게임      | Synchronization |
+| 7  | 서버 권위 이동      | Authority       |
+| 8  | 공격/전투         | Server Logic    |
+| 9  | Tick Server   | Real-time       |
+| 10 | 지연 시뮬레이션      | Latency         |
+| 11 | Entity System | World           |
+| 12 | Zone/AOI      | 최적화             |
+| 13 | DB 연동         | Persistence     |
+| 14 | Login Server  | 서비스 구조          |
+| 15 | 최종 온라인 게임     | 전체 통합           |
+
+## 최종적으로 이해해야 할 그림
+
+이 교과서에서 가장 중요한 목표는 특정 API를 외우는 것이 아니라, 마지막에 다음 그림을 **스스로 설계하고 설명할 수 있게 되는 것**입니다.
+
+```text
+                    ┌───────────────┐
+                    │  Login Server │
+                    └───────┬───────┘
+                            │
+                            ▼
+                    ┌───────────────┐
+                    │ Game Server   │
+                    │               │
+                    │ Game World    │
+                    │ ├─ Players    │
+                    │ ├─ Monsters   │
+                    │ ├─ Items      │
+                    │ └─ Combat     │
+                    └───────┬───────┘
+                            │
+                  ┌─────────┼─────────┐
+                  │         │         │
+                  ▼         ▼         ▼
+              Client A  Client B  Client C
+                  │         │         │
+                  └─────────┼─────────┘
+                            │
+                         Database
+```
+
+그리고 **"플레이어가 마우스를 클릭했을 때 실제로 무슨 일이 일어나는가?"**를 패킷 단위로 추적할 수 있게 만드는 것이 핵심 학습 목표입니다.
+
+```text
+Mouse Click
+    ↓
+Client Input
+    ↓
+Game Command
+    ↓
+Packet Serialize
+    ↓
+Network
+    ↓
+Server Receive
+    ↓
+Packet Deserialize
+    ↓
+Validation
+    ↓
+Game Logic
+    ↓
+Game State 변경
+    ↓
+Snapshot / Event
+    ↓
+Network
+    ↓
+Client Receive
+    ↓
+Client State Update
+    ↓
+Render
+```
+
+이렇게 구성하면 **게임 클라이언트/서버 구조를 처음 배우는 사람부터 최종적으로 실시간 멀티플레이 게임 서버의 전체 구조를 설계하는 단계까지** 자연스럽게 올라갈 수 있습니다.
